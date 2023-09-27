@@ -53,6 +53,7 @@ public class MatchReplayPlayerInspector : UnityEditor.Editor
     private void OnSceneGUI()
     {
         TryPaintScene(null);
+        PaintUI();
     }
     
     private void TryPaintScene(SceneView obj)
@@ -103,6 +104,15 @@ public class MatchReplayPlayerInspector : UnityEditor.Editor
             }
             SceneView.RepaintAll();
         }
+    }
+
+    private void PaintUI()
+    {
+        GUILayout.BeginArea(new Rect(20, 20, 100, 100));
+        var rect = EditorGUILayout.BeginVertical();
+        GUI.Box(rect, GUIContent.none);
+        GUILayout.Label("Agengs");
+        GUILayout.EndArea();
     }
 
     private bool TimeStampInsideRange(float matchTime, float timeStamp)

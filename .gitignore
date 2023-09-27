@@ -6,3 +6,4 @@ Library
 *.csproj
 obj/Debug
 *.user
+obj
