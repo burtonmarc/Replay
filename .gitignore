@@ -4,3 +4,5 @@ Temp
 Logs
 Library
 *.csproj
+obj/Debug
+*.user

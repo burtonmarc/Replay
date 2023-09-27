@@ -6,8 +6,6 @@ public class MatchReplayPlayer : MonoBehaviour
 {
     private string path;
 
-    public const int DecimalPrecision = 100;
-
     public List<MatchData.MatchSerializableData> allMatchesData = new();
 
     [HideInInspector] public float replayStartPercentage;

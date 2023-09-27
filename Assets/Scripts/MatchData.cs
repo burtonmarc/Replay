@@ -12,6 +12,7 @@ public class MatchData
                 public string SceneName;
                 public AgentData.AgentSerializableData[] AgentsSerializableData; // List of agents of the match
                 public float MatchDuration;
+                public int DecimalPrecision;
         }
         
         public MatchSerializableData Serialize()
@@ -20,7 +21,8 @@ public class MatchData
                 {
                         SceneName = SceneName,
                         AgentsSerializableData = new AgentData.AgentSerializableData[AgentsData.Count],
-                        MatchDuration = MatchDuration
+                        MatchDuration = MatchDuration,
+                        DecimalPrecision = MatchReplayRecorder.DecimalPrecision
                 };
                 for (var index = 0; index < AgentsData.Count; index++)
                 {
@@ -33,12 +35,14 @@ public class MatchData
         public string SceneName;
         public List<AgentData> AgentsData;
         public float MatchDuration;
+        public int DecimalPrecision;
 
         public MatchData(MatchSerializableData matchSerializableData)
         {
                 SceneName = matchSerializableData.SceneName;
                 AgentsData = new List<AgentData>();
                 MatchDuration = matchSerializableData.MatchDuration;
+                DecimalPrecision = matchSerializableData.DecimalPrecision;
 
                 foreach (var agentSerializableData in matchSerializableData.AgentsSerializableData)
                 {
@@ -46,7 +50,8 @@ public class MatchData
                         {
                                 AgentName = agentSerializableData.AgentName,
                                 PositionEvents = agentSerializableData.PositionEvents.ToList(),
-                                RotationEvents = agentSerializableData.RotationEvents.ToList()
+                                RotationEvents = agentSerializableData.RotationEvents.ToList(),
+                                EliminationEvents = agentSerializableData.EliminationEvents.ToList()
                         });
                 }
         }
@@ -60,6 +65,7 @@ public class AgentData
                 public string AgentName;
                 public PositionEvent[] PositionEvents;
                 public RotationEvent[] RotationEvents;
+                public EliminationEvent[] EliminationEvents;
         }
 
         public AgentSerializableData Serialize()
@@ -68,19 +74,22 @@ public class AgentData
                 {
                         AgentName = AgentName,
                         PositionEvents = PositionEvents.ToArray(),
-                        RotationEvents = RotationEvents.ToArray()
+                        RotationEvents = RotationEvents.ToArray(),
+                        EliminationEvents = EliminationEvents.ToArray()
                 };
         }
         
         public string AgentName;
         public List<PositionEvent> PositionEvents;
         public List<RotationEvent> RotationEvents;
+        public List<EliminationEvent> EliminationEvents;
 
         public void Init(string name)
         {
                 AgentName = name;
-                PositionEvents = new List<PositionEvent>(512);
-                RotationEvents = new List<RotationEvent>(512);
+                PositionEvents = new List<PositionEvent>(1024);
+                RotationEvents = new List<RotationEvent>(1024);
+                EliminationEvents = new List<EliminationEvent>(64);
         }
 }
 
@@ -97,9 +106,9 @@ public abstract class BaseEvent
         public float TimeStamp;
         public MatchEventType MatchEventType;
 
-        protected BaseEvent(float timeStamp, MatchEventType matchEventType)
+        protected BaseEvent(float currentTime, MatchEventType matchEventType)
         {
-                TimeStamp = Mathf.RoundToInt(timeStamp * MatchReplayPlayer.DecimalPrecision);
+                TimeStamp = Mathf.RoundToInt(currentTime * MatchReplayRecorder.DecimalPrecision);
                 MatchEventType = matchEventType;
         }
 }
@@ -111,11 +120,11 @@ public class PositionEvent : BaseEvent
         public int y;
         public int z;
 
-        public PositionEvent(Vector3 position, float timeStamp) : base(timeStamp, MatchEventType.Position)
+        public PositionEvent(Vector3 position, float currentTime) : base(currentTime, MatchEventType.Position)
         {
-                x = Mathf.RoundToInt(position.x * MatchReplayPlayer.DecimalPrecision);
-                y = Mathf.RoundToInt(position.y * MatchReplayPlayer.DecimalPrecision);
-                z = Mathf.RoundToInt(position.z * MatchReplayPlayer.DecimalPrecision);
+                x = Mathf.RoundToInt(position.x * MatchReplayRecorder.DecimalPrecision);
+                y = Mathf.RoundToInt(position.y * MatchReplayRecorder.DecimalPrecision);
+                z = Mathf.RoundToInt(position.z * MatchReplayRecorder.DecimalPrecision);
         }
 
         public Vector3 Pos => new(x, y, z);
@@ -131,8 +140,25 @@ public class RotationEvent : BaseEvent
         public RotationEvent(Quaternion rotation, float timeStamp) : base(timeStamp, MatchEventType.Rotation)
         {
                 var eulerAngles = rotation.eulerAngles;
-                x = Mathf.RoundToInt(eulerAngles.x * MatchReplayPlayer.DecimalPrecision);
-                y = Mathf.RoundToInt(eulerAngles.y * MatchReplayPlayer.DecimalPrecision);
-                z = Mathf.RoundToInt(eulerAngles.z * MatchReplayPlayer.DecimalPrecision);
+                x = Mathf.RoundToInt(eulerAngles.x * MatchReplayRecorder.DecimalPrecision);
+                y = Mathf.RoundToInt(eulerAngles.y * MatchReplayRecorder.DecimalPrecision);
+                z = Mathf.RoundToInt(eulerAngles.z * MatchReplayRecorder.DecimalPrecision);
         }
+}
+
+[Serializable]
+public class EliminationEvent : BaseEvent
+{
+        public float x;
+        public float y;
+        public float z;
+
+        public EliminationEvent(Vector3 position, float currentTime) : base(currentTime, MatchEventType.Elimination)
+        {
+                x = Mathf.RoundToInt(position.x * MatchReplayRecorder.DecimalPrecision);
+                y = Mathf.RoundToInt(position.y * MatchReplayRecorder.DecimalPrecision);
+                z = Mathf.RoundToInt(position.z * MatchReplayRecorder.DecimalPrecision);
+        }
+        
+        public Vector3 Pos => new(x, y, z);
 }

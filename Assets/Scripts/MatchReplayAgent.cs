@@ -30,7 +30,7 @@ public class MatchReplayAgent : MonoBehaviour
                 MatchReplayRecorder.Instance.Unsubscribe(this);
         }
 
-        public void Tick(float tick)
+        public void CustomUpdate()
         {
                 if (RecordPosition)
                 {
@@ -38,7 +38,7 @@ public class MatchReplayAgent : MonoBehaviour
                         if (positionRecordingTimer <= 0f)
                         {
                                 positionRecordingTimer = PositionRecodingPeriod;
-                                AgentData.PositionEvents.Add(new PositionEvent(cachedTransform.position, tick));
+                                AgentData.PositionEvents.Add(new PositionEvent(cachedTransform.position, MatchReplayRecorder.MatchElapsedTime));
                         }  
                 }
 
@@ -48,8 +48,14 @@ public class MatchReplayAgent : MonoBehaviour
                         if (rotationRecordingTimer <= 0f)
                         {
                                 rotationRecordingTimer = RotationRecodingPeriod;
-                                AgentData.RotationEvents.Add(new RotationEvent(cachedTransform.rotation, tick));
+                                AgentData.RotationEvents.Add(new RotationEvent(cachedTransform.rotation, MatchReplayRecorder.MatchElapsedTime));
                         }    
                 }
+        }
+
+        public void OnElimination(Vector3 position)
+        {
+                Debug.Log($"Elimination at position: {position}");
+                AgentData.EliminationEvents.Add(new EliminationEvent(position, MatchReplayRecorder.MatchElapsedTime));
         }
 }

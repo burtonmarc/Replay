@@ -21,7 +21,6 @@ namespace Editor
             if (GUILayout.Button("Finish Recording Match"))
             {
                 matchReplayRecorder.FinishRecordingMatch();
-                EditorApplication.isPlaying = false;
             }
         }
     }

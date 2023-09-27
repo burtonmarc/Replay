@@ -22,33 +22,6 @@ public class MatchReplayPlayerInspector : UnityEditor.Editor
         SceneView.beforeSceneGui -= TryPaintScene;
     }
 
-    private void OnSceneGUI()
-    {
-        TryPaintScene(null);
-    }
-    
-    private void TryPaintScene(SceneView obj)
-    {
-        if (displayLevel && matchData != null)
-        {
-            Handles.color = Color.green;
-
-            var maxReplayTime = matchData.MatchDuration;
-
-            foreach (var matchAgentData in matchData.AgentsData)
-            {
-                for (var index = 0; index < matchAgentData.PositionEvents.Count; index++)
-                {
-                    var positionEvent = matchAgentData.PositionEvents[index];
-                    if(index == 0) continue;
-                    var previousPositionEvent = matchAgentData.PositionEvents[index - 1];
-                    
-                    Handles.DrawLine(previousPositionEvent.Pos, positionEvent.Pos);
-                }
-            }
-        }
-    }
-
     public override void OnInspectorGUI()
     {
         if (GUILayout.Button("Load Match Replay Files"))
@@ -76,68 +49,69 @@ public class MatchReplayPlayerInspector : UnityEditor.Editor
             }
         }
     }
-    
-/*
-    private void CreateGUI()
+
+    private void OnSceneGUI()
     {
-        // Reference to the root of the window.
-        var root = rootVisualElement;
-
-        // Associates a stylesheet to our root. Thanks to inheritance, all root’s
-        // children will have access to it.
-        root.styleSheets.Add(Resources.Load<StyleSheet>("QuickTool_Style"));
-        
-        // Loads and clones our VisualTree (eg. our UXML structure) inside the root.
-        var quickToolVisualTree = Resources.Load<VisualTreeAsset>("QuickTool_Main");
-        quickToolVisualTree.CloneTree(root);
-
-        // Queries all the buttons (via class name) in our root and passes them
-        // in the SetupButton method.
-        var toolButtons = root.Query(className: "quicktool-button");
-        toolButtons.ForEach(SetupButton);
-
-        var createLineButton = root.Query(className: "create-line-button");
-        SetupCreateLineButton(createLineButton);
-    }
-*/
-
-    private void SetupCreateLineButton(VisualElement createLineButton)
-    {
-        createLineButton.RegisterCallback<PointerUpEvent, Vector3>(DrawLine, Vector3.zero);
-    }
-
-    private void DrawLine(PointerUpEvent _, Vector3 start)
-    {
-        Handles.DrawLine(Vector3.zero, Vector3.one * 4f);
-    }
-
-    private void SetupButton(VisualElement button) 
-    {
-        // Reference to the VisualElement inside the button that serves
-        // as the button's icon.
-        var buttonIcon = button.Q(className: "quicktool-button-icon");
-
-        // Icon's path in our project.
-        var iconPath = "Icons/" + button.parent.name + "_icon";
-
-        // Loads the actual asset from the above path.
-        var iconAsset = Resources.Load<Texture2D>(iconPath);
-
-        // Applies the above asset as a background image for the icon.
-        buttonIcon.style.backgroundImage = iconAsset;
-
-        // Instantiates our primitive object on a left click.
-        button.RegisterCallback<PointerUpEvent, string>(CreateObject, button.parent.name);
-
-        // Sets a basic tooltip to the button itself.
-        button.tooltip = button.parent.name;
+        TryPaintScene(null);
     }
     
-    private void CreateObject(PointerUpEvent _, string primitiveTypeName)
-    {    
-        var pt = (PrimitiveType) Enum.Parse
-            (typeof(PrimitiveType), primitiveTypeName, true);
-        var go = ObjectFactory.CreatePrimitive(pt);
-        go.transform.position = Vector3.zero;
+    private void TryPaintScene(SceneView obj)
+    {
+        if (displayLevel && matchData != null)
+        {
+            var maxReplayTime = matchData.MatchDuration;
+
+            foreach (var matchAgentData in matchData.AgentsData)
+            {
+                // Draw Position Events
+                Handles.color = Color.green;
+                var skippedFirstPositionEvent = false;
+                for (var index = 0; index < matchAgentData.PositionEvents.Count; index++)
+                {
+                    var positionEvent = matchAgentData.PositionEvents[index];
+                    
+                    if(!TimeStampInsideRange(maxReplayTime, positionEvent.TimeStamp)) continue;
+
+                    if (!skippedFirstPositionEvent)
+                    {
+                        skippedFirstPositionEvent = true;
+                        continue;
+                    }
+                    
+                    var previousPositionEvent = matchAgentData.PositionEvents[index - 1];
+                    
+                    if (matchAgentData.EliminationEvents.Exists(ee => 
+                            previousPositionEvent.TimeStamp < ee.TimeStamp &&
+                            positionEvent.TimeStamp > ee.TimeStamp)) continue;
+                    
+                        
+                    Handles.DrawLine(previousPositionEvent.Pos / matchData.DecimalPrecision,
+                        positionEvent.Pos / matchData.DecimalPrecision, 3.0f);
+                }
+
+                // Draw Elimination Events
+                Handles.color = Color.red;
+                for (var index = 0; index < matchAgentData.EliminationEvents.Count; index++)
+                {
+                    var eliminationEvent = matchAgentData.EliminationEvents[index];
+                    
+                    if(!TimeStampInsideRange(maxReplayTime, eliminationEvent.TimeStamp)) continue;
+                    
+                    Handles.DrawWireCube(eliminationEvent.Pos / matchData.DecimalPrecision, new Vector3(0.2f, 1f, 0.2f));
+                    Handles.DrawWireCube(eliminationEvent.Pos / matchData.DecimalPrecision + new Vector3(0f, 0.2f, 0f), new Vector3(0.6f, 0.2f, 0.2f));
+                }
+            }
+            SceneView.RepaintAll();
+        }
+    }
+
+    private bool TimeStampInsideRange(float matchTime, float timeStamp)
+    {
+        if (timeStamp / matchData.DecimalPrecision <
+            matchTime * matchReplayPlayer.replayStartPercentage * 0.01f ||
+            timeStamp / matchData.DecimalPrecision >
+            matchTime * matchReplayPlayer.replayEndPercentage * 0.01f)
+            return false;
+        return true;
     }
 }
