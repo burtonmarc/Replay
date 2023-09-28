@@ -83,6 +83,9 @@ public class AgentData
         public List<PositionEvent> PositionEvents;
         public List<RotationEvent> RotationEvents;
         public List<EliminationEvent> EliminationEvents;
+        
+        // Editor Variables
+        public bool Mute;
 
         public void Init(string name)
         {

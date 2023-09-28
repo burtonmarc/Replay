@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -64,6 +65,8 @@ public class MatchReplayPlayerInspector : UnityEditor.Editor
 
             foreach (var matchAgentData in matchData.AgentsData)
             {
+                if(matchAgentData.Mute) continue;
+                
                 // Draw Position Events
                 Handles.color = Color.green;
                 var skippedFirstPositionEvent = false;
@@ -108,11 +111,48 @@ public class MatchReplayPlayerInspector : UnityEditor.Editor
 
     private void PaintUI()
     {
-        GUILayout.BeginArea(new Rect(20, 20, 100, 100));
-        var rect = EditorGUILayout.BeginVertical();
-        GUI.Box(rect, GUIContent.none);
-        GUILayout.Label("Agengs");
-        GUILayout.EndArea();
+        if (displayLevel && matchData != null)
+        {
+            Handles.BeginGUI();
+            GUILayout.BeginArea(new Rect(20, 20, 100, 100));
+
+            var rect = EditorGUILayout.BeginVertical();
+            
+            GUI.Box(rect, GUIContent.none);
+
+            GUILayout.Label("Agents");
+
+            EditorGUILayout.BeginVertical();
+            
+            foreach (var matchAgentData in matchData.AgentsData)
+            {
+                EditorGUILayout.BeginHorizontal();
+                
+                GUILayout.Label(matchAgentData.AgentName);
+                matchAgentData.Mute = GUILayout.Toggle(matchAgentData.Mute, "mute");
+
+                var solo = false;
+                solo = GUILayout.Toggle(solo, "solo");
+
+                if (solo)
+                {
+                    matchAgentData.Mute = false;
+                    foreach (var mAD in matchData.AgentsData)
+                    {
+                        if (mAD != matchAgentData)
+                        {
+                            mAD.Mute = true;
+                        }
+                    }
+                }
+                
+                EditorGUILayout.EndHorizontal();
+            }
+            
+            EditorGUILayout.EndVertical();
+            GUILayout.EndArea();
+            Handles.EndGUI();
+        }
     }
 
     private bool TimeStampInsideRange(float matchTime, float timeStamp)
